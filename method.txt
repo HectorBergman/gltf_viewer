@@ -1,0 +1,12 @@
+mkdir build
+cd build
+cmake ../ -DCMAKE_INSTALL_PREFIX="/mnt/c/GitHub/gltf_viewer/build"
+make -j4
+make install
+cd bin/
+./model_viewer
+
+
+test this:
+
+mkdir build && cd build && cmake ../ -DCMAKE_INSTALL_PREFIX="/mnt/c/GitHub/gltf_viewer/build" && make -j4 && make install && cd bin/ && ./model_viewer
