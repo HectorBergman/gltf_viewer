@@ -82,20 +82,28 @@ void draw_scene(Context &ctx)
     //glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
 
     glm::mat4 view2 = glm::lookAt(
-        glm::vec3(0.0f,0.0f,5.0f), //camera position
+        glm::vec3(0.0f,0.0f,3.0f), //camera position
         glm::vec3(0.0f,0.0f,0.0f), //point looking at
-        glm::vec3(0.0f,1.0f,0.0f) //camera up direction
+        glm::vec3(0.0f,1.0f,0.0f)  //camera up direction
     );
     glm::mat4 view = view2 * view1;
 
+
     glm::mat4 projection = glm::perspective(
-        40.0f, //fov
+        20.0f, //fov
         (float)ctx.width / (float)ctx.height, //width/height aspect ratio
         0.1f,
         100.0f
     );
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
+
+    glm::vec3 diffuse = glm::vec3(1.0f, 0.0f, 0.0f); // pure red
+    glm::vec3 lightPos = glm::vec3(5.0f,5.0f,5.0f);
+
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &diffuse[0]);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_lightPosition"), 1, &lightPos[0]);
+
     
     //glm::mat4 projection = glm::mat4(1.0f);
     //glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
