@@ -33,7 +33,7 @@ struct Context {
     GLuint program;
     GLuint emptyVAO;
     float elapsedTime;
-    std::string gltfFilename = "cube_rgb.gltf";
+    std::string gltfFilename = "armadillo.gltf";
     // Add more variables here...
 };
 
@@ -78,9 +78,32 @@ void draw_scene(Context &ctx)
     // Define per-scene uniforms
     glUniform1f(glGetUniformLocation(ctx.program, "u_time"), ctx.elapsedTime);
 
-    glm::mat4 view = glm::mat4(ctx.trackball.orient);
-    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
+    glm::mat4 view1 = glm::mat4(ctx.trackball.orient);
+    //glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
 
+    glm::mat4 view2 = glm::lookAt(
+        glm::vec3(0.0f,0.0f,5.0f), //camera position
+        glm::vec3(0.0f,0.0f,0.0f), //point looking at
+        glm::vec3(0.0f,1.0f,0.0f) //camera up direction
+    );
+    glm::mat4 view = view2 * view1;
+
+    glm::mat4 projection = glm::perspective(
+        40.0f, //fov
+        (float)ctx.width / (float)ctx.height, //width/height aspect ratio
+        0.1f,
+        100.0f
+    );
+    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
+    
+    //glm::mat4 projection = glm::mat4(1.0f);
+    //glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
+    glm::mat4 model =
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.2f,0.0f,0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(160.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(1.2f));
+    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_model"), 1, GL_FALSE, &model[0][0]);
 
     // Draw scene
     for (unsigned i = 0; i < ctx.asset.nodes.size(); ++i) {
@@ -231,7 +254,7 @@ int main(int argc, char *argv[])
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        // ImGui::ShowDemoWindow();
+        ImGui::ShowDemoWindow();
         do_rendering(ctx);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
