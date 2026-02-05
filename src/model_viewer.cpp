@@ -87,7 +87,16 @@ void draw_scene(Context &ctx)
         glm::vec3(0.0f,1.0f,0.0f)  //camera up direction
     );
     glm::mat4 view = view2 * view1;
+    
+    glm::vec3 ambientColor = glm::vec3(1.0f,0.0f,0.0f);
+    glm::vec3 diffuseColor = glm::vec3(1.0f,0.0f,0.0f);
+    glm::vec3 specularColor = glm::vec3(1.0f,0.0f,0.0f);
+    glm::float32 specularPower = glm::float32(2.5f);
 
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_ambientColor"), 1, &ambientColor[0]);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &diffuseColor[0]);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_specularColor"), 1, &specularColor[0]);
+    glUniform1f(glGetUniformLocation(ctx.program, "u_specularPower"), specularPower);
 
     glm::mat4 projection = glm::perspective(
         20.0f, //fov
