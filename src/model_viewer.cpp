@@ -34,6 +34,13 @@ struct Context {
     GLuint emptyVAO;
     float elapsedTime;
     std::string gltfFilename = "armadillo.gltf";
+    glm::vec3 ambient = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 diffuse = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 specular = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::float32 specularPow = 25.0f;
+    bool showNormals = false;
+    bool orthographicProjection = false;
+    glm::float32 zoom = 1.0f;
     // Add more variables here...
 };
 
@@ -88,29 +95,56 @@ void draw_scene(Context &ctx)
     );
     glm::mat4 view = view2 * view1;
     
-    glm::vec3 ambientColor = glm::vec3(1.0f,0.0f,0.0f);
-    glm::vec3 diffuseColor = glm::vec3(1.0f,0.0f,0.0f);
-    glm::vec3 specularColor = glm::vec3(1.0f,0.0f,0.0f);
-    glm::float32 specularPower = glm::float32(2.5f);
 
-    glUniform3fv(glGetUniformLocation(ctx.program, "u_ambientColor"), 1, &ambientColor[0]);
-    glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &diffuseColor[0]);
-    glUniform3fv(glGetUniformLocation(ctx.program, "u_specularColor"), 1, &specularColor[0]);
-    glUniform1f(glGetUniformLocation(ctx.program, "u_specularPower"), specularPower);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_ambientColor"), 1, &ctx.ambient[0]);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &ctx.diffuse[0]);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_specularColor"), 1, &ctx.specular[0]);
+    glUniform1f(glGetUniformLocation(ctx.program, "u_specularPower"), ctx.specularPow);
 
+    ImGui::ColorEdit3("Ambient Color", &ctx.ambient[0]);
+    ImGui::ColorEdit3("Diffuse Color", &ctx.diffuse[0]);
+    ImGui::ColorEdit3("Specular Color", &ctx.specular[0]);
+    ImGui::InputFloat("Specular Power", &ctx.specularPow);
+    ImGui::InputFloat("Zoom", &ctx.zoom);
+    ImGui::Checkbox("Show Normals", &ctx.showNormals);
+    ImGui::Checkbox("Toggle Orthographic Projection", &ctx.orthographicProjection);
+
+    float near = 0.1f;
+    float far = 100.0f;
+    float aspectRatio = (float)ctx.width / (float)ctx.height;
+    float baseFov = glm::radians(75.0f);
+    float fov = baseFov / ctx.zoom;
     glm::mat4 projection = glm::perspective(
-        20.0f, //fov
-        (float)ctx.width / (float)ctx.height, //width/height aspect ratio
-        0.1f,
-        100.0f
+        fov,
+        aspectRatio, 
+        near,
+        far
+    );
+
+    glm::mat4 orthoProj = glm::ortho(
+        -(float)ctx.zoom * aspectRatio,
+        (float)ctx.zoom * aspectRatio,
+        -(float)ctx.zoom,
+        (float)ctx.zoom,
+        near,
+        far
+    );
+    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_orthoProjection"), 1, GL_FALSE, &orthoProj[0][0]);
+
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_showNormals"),
+        ctx.showNormals
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toggleOrtho"),
+        ctx.orthographicProjection
     );
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
 
-    glm::vec3 diffuse = glm::vec3(1.0f, 0.0f, 0.0f); // pure red
     glm::vec3 lightPos = glm::vec3(5.0f,5.0f,5.0f);
+    // Transform to view space
 
-    glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &diffuse[0]);
     glUniform3fv(glGetUniformLocation(ctx.program, "u_lightPosition"), 1, &lightPos[0]);
 
     
@@ -210,8 +244,13 @@ void cursor_pos_callback(GLFWwindow *window, double x, double y)
 void scroll_callback(GLFWwindow *window, double x, double y)
 {
     // Forward event to ImGui
+
     ImGui_ImplGlfw_ScrollCallback(window, x, y);
     if (ImGui::GetIO().WantCaptureMouse) return;
+
+    Context *ctx = static_cast<Context *>(glfwGetWindowUserPointer(window));
+    ctx->zoom += (float)y * 0.2f;
+    ctx->zoom = glm::max(ctx->zoom, 0.4f); 
 }
 
 void resize_callback(GLFWwindow *window, int width, int height)
@@ -271,7 +310,7 @@ int main(int argc, char *argv[])
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
         do_rendering(ctx);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
