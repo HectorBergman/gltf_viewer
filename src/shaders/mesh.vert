@@ -17,6 +17,7 @@ uniform vec3 u_specularColor;
 uniform float u_specularPower;
 uniform mat4 u_orthoProjection;
 uniform bool u_toggleOrtho;
+uniform bool u_toggleReflective;
 
 
 // ...

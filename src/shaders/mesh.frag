@@ -5,6 +5,7 @@
 // ...
 uniform bool u_showNormals;
 uniform bool u_toggleOrtho;
+uniform bool u_toggleReflective;
 
 uniform vec3 u_lightPosition;
 uniform vec3 u_ambientColor;
@@ -44,14 +45,23 @@ void main()
     // Multiply the diffuse reflection term with the base surface color
     
     
+    //todo: go to assets/cubemaps/romechurch, observe that
+    //they are 0.125, 0.5, 2, 8, etc., add a slider or some equivalent
+    //to go from 0.125, 0.5, 2, 8, etc. to change cubemaps.
     
     vec3 I_s =  (u_specularPower+8)/8 *  u_specularColor * 
             L * (pow(dot(N,H), u_specularPower));
-    f_color = vec4(
-        u_ambientColor
-        + u_diffuseColor * L * diffuse
-        + I_s,
-        1.0
-    );
+    if (u_toggleReflective) {
+        f_color = vec4(color, 1);
+    }else{
+        f_color = vec4(
+            u_ambientColor
+            + u_diffuseColor * L * diffuse
+            + I_s,
+            1.0
+        );
+    }
+        
     f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
+    
 }

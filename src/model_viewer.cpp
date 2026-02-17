@@ -40,6 +40,7 @@ struct Context {
     glm::float32 specularPow = 25.0f;
     bool showNormals = false;
     bool orthographicProjection = false;
+    bool reflective = false;
     glm::float32 zoom = 1.0f;
     GLuint cubemap; 
 };
@@ -128,6 +129,8 @@ void draw_scene(Context &ctx)
     ImGui::InputFloat("Zoom", &ctx.zoom);
     ImGui::Checkbox("Show Normals", &ctx.showNormals);
     ImGui::Checkbox("Toggle Orthographic Projection", &ctx.orthographicProjection);
+    ImGui::Checkbox("Toggle Reflective Environment", &ctx.reflective);
+
 
     float near = 0.1f;
     float far = 100.0f;
@@ -158,6 +161,10 @@ void draw_scene(Context &ctx)
     glUniform1i(
         glGetUniformLocation(ctx.program, "u_toggleOrtho"),
         ctx.orthographicProjection
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toggleReflective"),
+        ctx.reflective
     );
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
