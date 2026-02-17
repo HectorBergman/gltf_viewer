@@ -32,6 +32,12 @@ layout(location = 2) in vec4 a_normal;
 // ...
 out vec4 v_color;
 out vec3 v_normal;
+out vec4 v_position;
+out vec3 N;
+out vec3 L;
+out vec3 V;
+
+
 
 
 void main()
@@ -44,29 +50,17 @@ void main()
     }
     
     mat4 mv = u_view * u_model;
-    gl_Position = MVP * a_position;
-    v_normal = normalize(mat3(mv) * a_normal.xyz);
-    // Transform the vertex position to view space (eye coordinates)
-    vec3 positionEye = vec3(mv * a_position);
-
+        // Transform the vertex position to view space (eye coordinates)
+    vec3 positionEye = vec3(mv * v_position);
+    vec3 V = normalize(-positionEye);
     // Calculate the view-space normal
-    vec3 N = normalize(mat3(mv) * a_normal.xyz);
+    vec3 N = normalize(mat3(mv) * v_normal.xyz);
 
     // Calculate the view-space light direction
     vec3 L = normalize(u_lightPosition - positionEye);
-
-    // Calculate the diffuse (Lambertian) reflection term
-    float diffuse = max(0.0, dot(N, L));
-
-    // Multiply the diffuse reflection term with the base surface color
-    //v_color = vec4(diffuse * u_diffuseColor, 1.0);
-    vec3 V = normalize(-positionEye);
-    vec3 H = (L + V)/length(L+V);
-    v_color = vec4(
-        u_ambientColor
-        + u_diffuseColor * L * diffuse
-        + u_specularColor * L * pow(max(dot(N, H), 0.0), u_specularPower),
-        1.0
-    );
+    gl_Position = MVP * a_position;
+    v_normal = normalize(mat3(mv) * a_normal.xyz);
+    
+    v_position = mv * a_position;
 }
 

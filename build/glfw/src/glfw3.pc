@@ -1,7 +1,7 @@
-prefix=/mnt/c/GitHub/gltf_viewer/build
+prefix=/mnt/c/GitHub/gltf_viewer
 exec_prefix=${prefix}
-includedir=/mnt/c/GitHub/gltf_viewer/build/include
-libdir=/mnt/c/GitHub/gltf_viewer/build/lib
+includedir=/mnt/c/GitHub/gltf_viewer/include
+libdir=/mnt/c/GitHub/gltf_viewer/lib
 
 Name: GLFW
 Description: A multi-platform library for OpenGL, window and input
