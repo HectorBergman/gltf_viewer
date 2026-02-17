@@ -41,7 +41,7 @@ struct Context {
     bool showNormals = false;
     bool orthographicProjection = false;
     glm::float32 zoom = 1.0f;
-    // Add more variables here...
+    GLuint cubemap; 
 };
 
 // Returns the absolute path to the src/shader directory
@@ -53,6 +53,17 @@ std::string shader_dir(void)
         std::exit(EXIT_FAILURE);
     }
     return rootDir + "/src/shaders/";
+}
+
+// Returns the absolute path to the src/shader directory
+std::string cubemap_dir(void)
+{
+    std::string rootDir = cg::get_env_var("MODEL_VIEWER_ROOT");
+    if (rootDir.empty()) {
+        std::cout << "Error: MODEL_VIEWER_ROOT is not set." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    return rootDir + "/assets/cubemaps/";
 }
 
 // Returns the absolute path to the assets/gltf directory
@@ -94,7 +105,16 @@ void draw_scene(Context &ctx)
         glm::vec3(0.0f,1.0f,0.0f)  //camera up direction
     );
     glm::mat4 view = view2 * view1;
+    ctx.cubemap = cg::load_cubemap(cubemap_dir() + "/RomeChurch/");
     
+    //"the next texture should go into GL_TEXTURE0"
+    glActiveTexture(GL_TEXTURE0);
+    //binding it
+    glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
+
+    GLint location = glGetUniformLocation(0, "u_cubemap");
+    glUniform1i(location, 0); 
+
 
     glUniform3fv(glGetUniformLocation(ctx.program, "u_ambientColor"), 1, &ctx.ambient[0]);
     glUniform3fv(glGetUniformLocation(ctx.program, "u_diffuseColor"), 1, &ctx.diffuse[0]);

@@ -33,10 +33,7 @@ layout(location = 2) in vec4 a_normal;
 out vec4 v_color;
 out vec3 v_normal;
 out vec4 v_position;
-out vec3 N;
-out vec3 L;
-out vec3 V;
-
+out vec3 v_positionEye;
 
 
 
@@ -51,16 +48,13 @@ void main()
     
     mat4 mv = u_view * u_model;
         // Transform the vertex position to view space (eye coordinates)
-    vec3 positionEye = vec3(mv * v_position);
-    vec3 V = normalize(-positionEye);
-    // Calculate the view-space normal
-    vec3 N = normalize(mat3(mv) * v_normal.xyz);
+    v_positionEye = vec3(mv * a_position);
 
     // Calculate the view-space light direction
-    vec3 L = normalize(u_lightPosition - positionEye);
+    
     gl_Position = MVP * a_position;
     v_normal = normalize(mat3(mv) * a_normal.xyz);
-    
+
     v_position = mv * a_position;
 }
 

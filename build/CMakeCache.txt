@@ -143,7 +143,7 @@ CMAKE_INSTALL_MANDIR:PATH=
 CMAKE_INSTALL_OLDINCLUDEDIR:PATH=/usr/include
 
 //Install path prefix, prepended onto install directories.
-CMAKE_INSTALL_PREFIX:PATH=/mnt/c/GitHub/gltf_viewer
+CMAKE_INSTALL_PREFIX:PATH=/mnt/c/GitHub/gltf_viewer/build
 
 //Run-time variable data (LOCALSTATEDIR/run)
 CMAKE_INSTALL_RUNSTATEDIR:PATH=
@@ -1271,5 +1271,5 @@ X11_xkbfile_LIB-ADVANCED:INTERNAL=1
 //linker supports push/pop state
 _CMAKE_LINKER_PUSHPOP_STATE_SUPPORTED:INTERNAL=TRUE
 //CMAKE_INSTALL_PREFIX during last run
-_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/mnt/c/GitHub/gltf_viewer
+_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=/mnt/c/GitHub/gltf_viewer/build
 
