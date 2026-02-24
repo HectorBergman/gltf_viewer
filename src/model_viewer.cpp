@@ -33,7 +33,7 @@ struct Context {
     GLuint program;
     GLuint emptyVAO;
     float elapsedTime;
-    std::string gltfFilename = "armadillo.gltf";
+    std::string gltfFilename = "gargo.gltf";
     glm::vec3 ambient = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 diffuse = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 specular = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -42,7 +42,10 @@ struct Context {
     bool orthographicProjection = false;
     bool reflective = false;
     glm::float32 zoom = 1.0f;
-    GLuint cubemap; 
+    GLuint cubemap = 0; 
+    int current_cubemap = 3;
+    int previous_cubemap = -1;
+    std::string cubemap_chosen = "8";
 };
 
 // Returns the absolute path to the src/shader directory
@@ -84,12 +87,39 @@ void do_initialization(Context &ctx)
 
     gltf::load_gltf_asset(ctx.gltfFilename, gltf_dir(), ctx.asset);
     gltf::create_drawables_from_gltf_asset(ctx.drawables, ctx.asset);
+
+    // Initial cubemap using YOUR actual folder structure
+    ctx.current_cubemap = 3;
+    ctx.previous_cubemap = -1;
+    ctx.cubemap_chosen = "8";
+    std::string path = cubemap_dir() + "RomeChurch/prefiltered/" + ctx.cubemap_chosen + "/";
+    std::cout << "=== INITIAL CUBEMAP PATH: " << path << std::endl;
+    ctx.cubemap = cg::load_cubemap(path);
 }
 
 void draw_scene(Context &ctx)
 {
     // Activate shader program
     glUseProgram(ctx.program);
+    
+    // CUBEMAP
+    const char* values[] = { "0.125", "0.5", "2", "8", "32", "128", "512", "2048" };
+    ImGui::SliderInt("Cubemap Roughness", &ctx.current_cubemap, 0, 7, values[ctx.current_cubemap]);
+
+    if (ctx.previous_cubemap != ctx.current_cubemap) {
+        ctx.previous_cubemap = ctx.current_cubemap;
+        ctx.cubemap_chosen = values[ctx.current_cubemap];
+
+        std::string path = cubemap_dir() + "RomeChurch/prefiltered/" + ctx.cubemap_chosen + "/";
+        std::cout << "=== SWITCHED CUBEMAP TO: " << path << std::endl;
+
+        ctx.cubemap = cg::load_cubemap(path);
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
+    glUniform1i(glGetUniformLocation(ctx.program, "u_cubemap"), 0);
+    ////////////////////////////////
     
     // Set render state
     glEnable(GL_DEPTH_TEST);  // Enable Z-buffering
@@ -106,15 +136,20 @@ void draw_scene(Context &ctx)
         glm::vec3(0.0f,1.0f,0.0f)  //camera up direction
     );
     glm::mat4 view = view2 * view1;
-    ctx.cubemap = cg::load_cubemap(cubemap_dir() + "/RomeChurch/");
-    
-    //"the next texture should go into GL_TEXTURE0"
-    glActiveTexture(GL_TEXTURE0);
-    //binding it
-    glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
 
-    GLint location = glGetUniformLocation(0, "u_cubemap");
-    glUniform1i(location, 0); 
+
+
+
+
+    //todo: go to assets/cubemaps/romechurch, observe that
+    //they are 0.125, 0.5, 2, 8, etc., add a slider or some equivalent
+    //to go from 0.125, 0.5, 2, 8, etc. to change cubemaps.
+    //"the next texture should go into GL_TEXTURE0"
+
+    //binding it
+
+
+
 
 
     glUniform3fv(glGetUniformLocation(ctx.program, "u_ambientColor"), 1, &ctx.ambient[0]);
@@ -130,6 +165,13 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Show Normals", &ctx.showNormals);
     ImGui::Checkbox("Toggle Orthographic Projection", &ctx.orthographicProjection);
     ImGui::Checkbox("Toggle Reflective Environment", &ctx.reflective);
+
+
+
+
+
+
+
 
 
     float near = 0.1f;

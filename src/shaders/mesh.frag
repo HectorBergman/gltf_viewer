@@ -61,7 +61,7 @@ void main()
             1.0
         );
     }
-        
-    f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
+    f_color = vec4(color, 1.0);
+    //f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
     
 }
