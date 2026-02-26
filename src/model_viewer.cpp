@@ -33,7 +33,7 @@ struct Context {
     GLuint program;
     GLuint emptyVAO;
     float elapsedTime;
-    std::string gltfFilename = "gargo.gltf";
+    std::string gltfFilename = "lpshead.gltf";
     glm::vec3 ambient = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 diffuse = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 specular = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -46,6 +46,7 @@ struct Context {
     int current_cubemap = 3;
     int previous_cubemap = -1;
     std::string cubemap_chosen = "8";
+    gltf::TextureList textures;
 };
 
 // Returns the absolute path to the src/shader directory
@@ -239,6 +240,7 @@ void draw_scene(Context &ctx)
                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
         glBindVertexArray(0);
     }
+    gltf::create_textures_from_gltf_asset(ctx.textures, ctx.asset);
 
     // Clean up
     cg::reset_gl_render_state();
