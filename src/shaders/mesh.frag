@@ -19,6 +19,7 @@ in vec4 v_color;
 in vec3 v_normal;
 in vec4 v_position;
 in vec3 v_positionEye;
+in vec2 v_texcoord_0;
 
 // Fragment shader outputs
 out vec4 f_color;
@@ -61,7 +62,8 @@ void main()
             1.0
         );
     }
-    f_color = vec4(color, 1.0);
-    //f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
+    //f_color = vec4(color, 1.0);
+    //f_color = vec4(v_texcoord_0, .0, 1.0);
+    f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
     
 }

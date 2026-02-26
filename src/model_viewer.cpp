@@ -117,6 +117,13 @@ void draw_scene(Context &ctx)
         ctx.cubemap = cg::load_cubemap(path);
     }
 
+    if (pbr.hasBaseColorTexture) {
+        GLuint texture_id = ctx.textures[pbr.baseColorTexture.index];
+        // Bind texture and define uniforms...
+    } else {
+        // Need to handle this case as well, by telling
+        // the shader that no texture is available
+    }
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
     glUniform1i(glGetUniformLocation(ctx.program, "u_cubemap"), 0);
@@ -239,6 +246,15 @@ void draw_scene(Context &ctx)
         glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
         glBindVertexArray(0);
+    }
+    const gltf::Mesh &mesh = ctx.asset.meshes[node.mesh];
+    if (mesh.primitives[0].hasMaterial) {
+        const gltf::Primitive &primitive = mesh.primitives[0];
+        const gltf::Material &material = ctx.asset.materials[primitive.material];
+        const gltf::PBRMetallicRoughness &pbr = material.pbrMetallicRoughness;
+
+        // Define material textures and uniforms
+        // ...
     }
     gltf::create_textures_from_gltf_asset(ctx.textures, ctx.asset);
 

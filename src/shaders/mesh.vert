@@ -26,6 +26,7 @@ uniform bool u_toggleReflective;
 layout(location = 0) in vec4 a_position;
 layout(location = 1) in vec4 a_color;
 layout(location = 2) in vec4 a_normal;
+layout(location = 3) in vec2 a_texcoord_0;
 // ...
 
 
@@ -35,6 +36,7 @@ out vec4 v_color;
 out vec3 v_normal;
 out vec4 v_position;
 out vec3 v_positionEye;
+out vec2 v_texcoord_0;
 
 
 
@@ -55,7 +57,7 @@ void main()
     
     gl_Position = MVP * a_position;
     v_normal = normalize(mat3(mv) * a_normal.xyz);
-
+    v_texcoord_0 = a_texcoord_0;
     v_position = mv * a_position;
 }
 
