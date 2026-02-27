@@ -38,7 +38,8 @@ out vec4 v_position;
 out vec3 v_positionEye;
 out vec2 v_texcoord_0;
 
-
+//look at what grok yapped abt last time
+//gl gng o7
 
 void main()
 {
@@ -58,6 +59,8 @@ void main()
     gl_Position = MVP * a_position;
     v_normal = normalize(mat3(mv) * a_normal.xyz);
     v_texcoord_0 = a_texcoord_0;
+    //gradient for test
+    //v_texcoord_0 = a_position.xy * 0.5 + 0.5;
     v_position = mv * a_position;
 }
 

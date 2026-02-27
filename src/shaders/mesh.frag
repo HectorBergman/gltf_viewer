@@ -6,6 +6,8 @@
 uniform bool u_showNormals;
 uniform bool u_toggleOrtho;
 uniform bool u_toggleReflective;
+uniform bool u_toggleUV;
+uniform bool u_toggleTexture;
 
 uniform vec3 u_lightPosition;
 uniform vec3 u_ambientColor;
@@ -13,6 +15,8 @@ uniform vec3 u_diffuseColor;
 uniform vec3 u_specularColor;
 uniform float u_specularPower;
 uniform samplerCube u_cubemap;
+uniform sampler2D u_baseColorTexture;
+
 // Fragment shader inputs
 // ...
 in vec4 v_color;
@@ -26,6 +30,9 @@ out vec4 f_color;
 
 void main()
 {
+    /*f_color = u_toggleTexture ? vec4(1,0,0,1)
+                          : vec4(0,1,0,1);
+    return;*/
     if (u_showNormals) {
         vec3 No = normalize(v_normal);
         f_color = vec4(No * 0.5 + 0.5, 1.0);
@@ -39,7 +46,10 @@ void main()
     vec3 R = reflect(-V, N);
 
     vec3 color = texture(u_cubemap, R).rgb;
-
+    vec3 diffuseColor = u_diffuseColor;
+    if (u_toggleTexture) {
+        diffuseColor = texture(u_baseColorTexture, v_texcoord_0).rgb;
+    }
     // Calculate the diffuse (Lambertian) reflection term
     float diffuse = max(0.0, dot(N, L));
     
@@ -51,19 +61,23 @@ void main()
     //to go from 0.125, 0.5, 2, 8, etc. to change cubemaps.
     
     vec3 I_s =  (u_specularPower+8)/8 *  u_specularColor * 
-            L * (pow(dot(N,H), u_specularPower));
+            (pow(dot(N,H), u_specularPower));
     if (u_toggleReflective) {
         f_color = vec4(color, 1);
     }else{
         f_color = vec4(
             u_ambientColor
-            + u_diffuseColor * L * diffuse
+            + diffuseColor * diffuse
             + I_s,
             1.0
         );
     }
     //f_color = vec4(color, 1.0);
-    //f_color = vec4(v_texcoord_0, .0, 1.0);
-    f_color = vec4(pow(f_color.xyz, vec3(1 / 2.2)), 1);
+    if (u_toggleUV){
+        f_color = vec4(v_texcoord_0, .0, 1.0);
+    }else{
+        f_color.xyz = pow(max(f_color.xyz, 0.0), vec3(1.0 / 2.2));
+    }
     
+    // f_color = vec4(fract(v_texcoord_0 * 8.0), 0.0, 1.0);
 }

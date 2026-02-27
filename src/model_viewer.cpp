@@ -33,7 +33,7 @@ struct Context {
     GLuint program;
     GLuint emptyVAO;
     float elapsedTime;
-    std::string gltfFilename = "teapot.gltf";
+    std::string gltfFilename = "lpshead.gltf";
     glm::vec3 ambient = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 diffuse = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 specular = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -41,6 +41,8 @@ struct Context {
     bool showNormals = false;
     bool orthographicProjection = false;
     bool reflective = false;
+    bool UV = false;
+    bool useTexture = false;
     glm::float32 zoom = 1.0f;
     GLuint cubemap = 0; 
     int current_cubemap = 3;
@@ -89,6 +91,7 @@ void do_initialization(Context &ctx)
     gltf::load_gltf_asset(ctx.gltfFilename, gltf_dir(), ctx.asset);
     gltf::create_drawables_from_gltf_asset(ctx.drawables, ctx.asset);
 
+    gltf::create_textures_from_gltf_asset(ctx.textures, ctx.asset);
     // Initial cubemap using YOUR actual folder structure
     ctx.current_cubemap = 3;
     ctx.previous_cubemap = -1;
@@ -116,14 +119,7 @@ void draw_scene(Context &ctx)
 
         ctx.cubemap = cg::load_cubemap(path);
     }
-
-    if (pbr.hasBaseColorTexture) {
-        GLuint texture_id = ctx.textures[pbr.baseColorTexture.index];
-        // Bind texture and define uniforms...
-    } else {
-        // Need to handle this case as well, by telling
-        // the shader that no texture is available
-    }
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
     glUniform1i(glGetUniformLocation(ctx.program, "u_cubemap"), 0);
@@ -173,6 +169,8 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Show Normals", &ctx.showNormals);
     ImGui::Checkbox("Toggle Orthographic Projection", &ctx.orthographicProjection);
     ImGui::Checkbox("Toggle Reflective Environment", &ctx.reflective);
+    ImGui::Checkbox("Toggle UV", &ctx.UV);
+    ImGui::Checkbox("Toggle Texture", &ctx.useTexture);
 
 
 
@@ -216,9 +214,17 @@ void draw_scene(Context &ctx)
         glGetUniformLocation(ctx.program, "u_toggleReflective"),
         ctx.reflective
     );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toggleUV"),
+        ctx.UV
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toggleTexture"),
+        ctx.useTexture
+    );
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
-
+    glUniform1i(glGetUniformLocation(ctx.program, "u_baseColorTexture"), 1);
     glm::vec3 lightPos = glm::vec3(5.0f,5.0f,5.0f);
     // Transform to view space
 
@@ -239,7 +245,28 @@ void draw_scene(Context &ctx)
         const gltf::Drawable &drawable = ctx.drawables[node.mesh];
         
         // Define per-object uniforms
-        // ...
+        const gltf::Mesh &mesh = ctx.asset.meshes[node.mesh];
+        if (mesh.primitives[0].hasMaterial) {
+            const gltf::Primitive &primitive = mesh.primitives[0];
+            const gltf::Material &material = ctx.asset.materials[primitive.material];
+            const gltf::PBRMetallicRoughness &pbr = material.pbrMetallicRoughness;
+
+            // Define material textures and uniforms
+            if (pbr.hasBaseColorTexture) {
+                GLuint texture_id = ctx.textures[pbr.baseColorTexture.index];
+                // Bind texture and define uniforms...
+                glActiveTexture(GL_TEXTURE1);
+                if (ctx.useTexture && pbr.hasBaseColorTexture) {
+                    glBindTexture(GL_TEXTURE_2D, texture_id);//0);//baseTextureID);
+                } else {
+                    glBindTexture(GL_TEXTURE_2D, 0);   // unbind when we don't want the texture
+                }
+            } else {
+                // Need to handle this case as well, by telling
+                // the shader that no texture is available
+            }
+        }
+        
 
         // Draw object
         glBindVertexArray(drawable.vao);
@@ -247,16 +274,8 @@ void draw_scene(Context &ctx)
                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
         glBindVertexArray(0);
     }
-    const gltf::Mesh &mesh = ctx.asset.meshes[node.mesh];
-    if (mesh.primitives[0].hasMaterial) {
-        const gltf::Primitive &primitive = mesh.primitives[0];
-        const gltf::Material &material = ctx.asset.materials[primitive.material];
-        const gltf::PBRMetallicRoughness &pbr = material.pbrMetallicRoughness;
-
-        // Define material textures and uniforms
-        // ...
-    }
-    gltf::create_textures_from_gltf_asset(ctx.textures, ctx.asset);
+    
+    
 
     // Clean up
     cg::reset_gl_render_state();
