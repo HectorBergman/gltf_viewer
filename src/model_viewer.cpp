@@ -144,6 +144,8 @@ void draw_scene(Context &ctx)
 
         ctx.cubemap = cg::load_cubemap(path);
     }
+
+    
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, ctx.cubemap);
@@ -167,7 +169,17 @@ void draw_scene(Context &ctx)
     glm::mat4 view = view2 * view1;
 
 
+    // Bind shadowmap to texture unit 2
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, ctx.light.shadowmap);
+    glUniform1i(glGetUniformLocation(ctx.program, "u_shadowmap"), 2);
 
+    // u_shadowFromView = lightMatrix * inverse(view)
+    // Transforms: view space -> world space -> light clip space
+    glm::mat4 shadowFromView = ctx.light.shadowMatrix * glm::inverse(view);
+    glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_shadowFromView"), 1, GL_FALSE, &shadowFromView[0][0]);
+
+    glUniform1f(glGetUniformLocation(ctx.program, "u_shadowBias"), ctx.light.shadowBias);
 
 
     //todo: go to assets/cubemaps/romechurch, observe that
