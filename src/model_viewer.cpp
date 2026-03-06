@@ -114,7 +114,7 @@ void do_initialization(Context &ctx)
     ctx.shadowProgram =
         cg::load_shader_program(shader_dir() + "shadow.vert", shader_dir() + "shadow.frag");
 
-    ctx.light.shadowmap = cg::create_depth_texture(512, 512);
+    ctx.light.shadowmap = cg::create_depth_texture(2048, 2048);
     ctx.light.shadowFBO = cg::create_depth_framebuffer(ctx.light.shadowmap);
 
     ctx.light.position = glm::vec3(5.0f, 5.0f, 5.0f);
@@ -209,6 +209,7 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Toggle UV", &ctx.UV);
     ImGui::Checkbox("Toggle Texture", &ctx.useTexture);
     ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
+    ImGui::SliderFloat("Shadow Bias", &ctx.light.shadowBias, 0.0f, 0.01f, "%.4f");
 
 
 
@@ -325,7 +326,7 @@ void update_shadowmap(Context &ctx, ShadowCastingLight &light, GLuint shadowFBO)
 {
     // Set up rendering to shadowmap framebuffer
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadowFBO);
-    if (shadowFBO) glViewport(0, 0, 512, 512);  // TODO Set viewport to shadowmap size
+    if (shadowFBO) glViewport(0, 0, 2048, 2048);  // TODO Set viewport to shadowmap size
     glClear(GL_DEPTH_BUFFER_BIT);               // Clear depth values to 1.0
 
     // Set up pipeline

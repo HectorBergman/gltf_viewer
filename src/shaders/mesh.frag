@@ -33,8 +33,16 @@ float shadowmap_visibility(sampler2D shadowmap, vec4 shadowPos, float bias)
     vec2 delta = vec2(0.5) / textureSize(shadowmap, 0).xy;
     vec2 texcoord = (shadowPos.xy / shadowPos.w) * 0.5 + 0.5;
     float depth = (shadowPos.z / shadowPos.w) * 0.5 + 0.5;
-    float texel = texture(shadowmap, texcoord).r;
-    return float(texel > depth - bias);
+
+    float visibility = 0.0;
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+            vec2 offset = vec2(float(x), float(y)) * delta;
+            float texel = texture(shadowmap, texcoord + offset).r;
+            visibility += float(texel > depth - bias);
+        }
+    }
+    return visibility / 9.0;  // average over 3x3 = 9 samples
 }
 
 void main()
