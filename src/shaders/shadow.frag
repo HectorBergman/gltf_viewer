@@ -12,6 +12,7 @@ out vec4 frag_color;
 
 void main()
 {
-    // Write depth to fragment color (for debug drawing)
-    frag_color = vec4(vec3(gl_FragCoord.z), 1.0);
+    float depth = gl_FragCoord.z;
+    float remapped = 1.0 - (1.0 - depth) * 25.0; // tweak the multiplier
+    frag_color = vec4(remapped, remapped, remapped, 1.0);
 }

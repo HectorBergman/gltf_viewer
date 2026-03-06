@@ -22,6 +22,16 @@
 #include <cstdlib>
 #include <iostream>
 
+struct ShadowCastingLight {
+    glm::vec3 position;      // Light source position
+    glm::mat4 shadowMatrix;  // Camera matrix for shadowmap
+    GLuint shadowmap;        // Depth texture
+    GLuint shadowFBO;        // Depth framebuffer
+    float shadowBias;        // Bias for depth comparison
+};
+
+
+
 // Struct for our application context
 struct Context {
     int width = 512;
@@ -33,11 +43,11 @@ struct Context {
     GLuint program;
     GLuint emptyVAO;
     float elapsedTime;
-    std::string gltfFilename = "lpshead.gltf";
-    glm::vec3 ambient = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 diffuse = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 specular = glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::float32 specularPow = 25.0f;
+    std::string gltfFilename = "gargo.gltf";
+    glm::vec3 ambient  = glm::vec3(20.0f/255.0f, 0.0f, 0.0f);
+    glm::vec3 diffuse  = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 specular = glm::vec3(100.0f/255.0f, 67.0f/255.0f, 67.0f/255.0f);
+    glm::float32 specularPow = 10.0f;
     bool showNormals = false;
     bool orthographicProjection = false;
     bool reflective = false;
@@ -49,6 +59,10 @@ struct Context {
     int previous_cubemap = -1;
     std::string cubemap_chosen = "8";
     gltf::TextureList textures;
+
+    ShadowCastingLight light;
+    GLuint shadowProgram;
+    bool showShadowmap = false;
 };
 
 // Returns the absolute path to the src/shader directory
@@ -96,6 +110,17 @@ void do_initialization(Context &ctx)
     ctx.current_cubemap = 3;
     ctx.previous_cubemap = -1;
     ctx.cubemap_chosen = "8";
+
+    ctx.shadowProgram =
+        cg::load_shader_program(shader_dir() + "shadow.vert", shader_dir() + "shadow.frag");
+
+    ctx.light.shadowmap = cg::create_depth_texture(512, 512);
+    ctx.light.shadowFBO = cg::create_depth_framebuffer(ctx.light.shadowmap);
+
+    ctx.light.position = glm::vec3(5.0f, 5.0f, 5.0f);
+    ctx.light.shadowMatrix = glm::mat4(1.0f);
+    ctx.light.shadowBias = 0.0f;
+
     std::string path = cubemap_dir() + "RomeChurch/prefiltered/" + ctx.cubemap_chosen + "/";
     std::cout << "=== INITIAL CUBEMAP PATH: " << path << std::endl;
     ctx.cubemap = cg::load_cubemap(path);
@@ -171,6 +196,7 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Toggle Reflective Environment", &ctx.reflective);
     ImGui::Checkbox("Toggle UV", &ctx.UV);
     ImGui::Checkbox("Toggle Texture", &ctx.useTexture);
+    ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
 
 
 
@@ -183,7 +209,7 @@ void draw_scene(Context &ctx)
     float near = 0.1f;
     float far = 100.0f;
     float aspectRatio = (float)ctx.width / (float)ctx.height;
-    float baseFov = glm::radians(75.0f);
+    float baseFov = glm::radians(125.0f);
     float fov = baseFov / ctx.zoom;
     glm::mat4 projection = glm::perspective(
         fov,
@@ -282,17 +308,78 @@ void draw_scene(Context &ctx)
     glUseProgram(0);
 }
 
+// Update the shadowmap and shadow matrix for a light source
+void update_shadowmap(Context &ctx, ShadowCastingLight &light, GLuint shadowFBO)
+{
+    // Set up rendering to shadowmap framebuffer
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadowFBO);
+    if (shadowFBO) glViewport(0, 0, 512, 512);  // TODO Set viewport to shadowmap size
+    glClear(GL_DEPTH_BUFFER_BIT);               // Clear depth values to 1.0
+
+    // Set up pipeline
+    glUseProgram(ctx.shadowProgram);
+    glEnable(GL_DEPTH_TEST);  // Enable Z-buffering
+
+    glm::mat4 view = glm::lookAt(
+        ctx.light.position,
+        glm::vec3(0.0f, 0.0f, 0.0f),  // Target point (adjust if your model isn't centered at origin)
+        glm::vec3(0.0f, 1.0f, 0.0f)   // Up vector
+    );
+
+    float fov = glm::radians(90.0f);  // Start with 90 degrees; experiment if needed
+    float aspect = 1.0f;              // Square shadowmap
+    float near_plane = 0.1f;          // Adjust if precision issues arise
+    float far_plane = 10.0f;          // Ensure this covers the scene; experiment if visualization is all white
+    glm::mat4 proj = glm::perspective(fov, aspect, near_plane, far_plane);
+    glUniformMatrix4fv(glGetUniformLocation(ctx.shadowProgram, "u_view"), 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(ctx.shadowProgram, "u_proj"), 1, GL_FALSE, &proj[0][0]);
+
+    // Store updated shadow matrix for use in draw_scene()
+    light.shadowMatrix = proj * view;
+
+    // Draw scene
+    for (unsigned i = 0; i < ctx.asset.nodes.size(); ++i) {
+        const gltf::Node &node = ctx.asset.nodes[i];
+        const gltf::Drawable &drawable = ctx.drawables[node.mesh];
+
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.2f, 0.0f, 0.0f)) *
+                          glm::rotate(glm::mat4(1.0f), glm::radians(160.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
+                          glm::scale(glm::mat4(1.0f), glm::vec3(1.2f));
+        glUniformMatrix4fv(glGetUniformLocation(ctx.shadowProgram, "u_model"), 1, GL_FALSE, &model[0][0]);
+
+        // Draw object
+        glBindVertexArray(drawable.vao);
+        glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
+                       (GLvoid *)(intptr_t)drawable.indexByteOffset);
+        glBindVertexArray(0);
+    }
+
+    // Clean up
+    cg::reset_gl_render_state();
+    glUseProgram(0);
+    glViewport(0, 0, ctx.width, ctx.height);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+}
+
+
+
 void do_rendering(Context &ctx)
 {
-    // Clear render states at the start of each frame
     cg::reset_gl_render_state();
-
-    // Clear color and depth buffers
-    glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.5f, 0.2f, 0.2f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    draw_scene(ctx);
+    update_shadowmap(ctx, ctx.light, ctx.light.shadowFBO);
+    draw_scene(ctx);  // <-- draw scene first
+
+    if (ctx.showShadowmap) {
+        // NOW overwrite the screen with the depth visualization
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        update_shadowmap(ctx, ctx.light, 0);
+    }
 }
+
 
 void reload_shaders(Context *ctx)
 {
@@ -367,6 +454,7 @@ void resize_callback(GLFWwindow *window, int width, int height)
     ctx->height = height;
     glViewport(0, 0, width, height);
 }
+
 
 int main(int argc, char *argv[])
 {
