@@ -55,6 +55,9 @@ struct Context {
     bool useTexture = false;
     bool toonShading = true;
     bool evil_toonShading = false;
+    bool drawWireframe = false;
+    bool drawObject = true;
+    glm::vec3 wireframeColor = glm::vec3(0.0f,0.0f,0.0f);
     glm::int32 toon_colorLevels = 4;
     glm::float32 zoom = 1.0f;
     GLuint cubemap = 0; 
@@ -201,6 +204,7 @@ void draw_scene(Context &ctx)
     glUniform3fv(glGetUniformLocation(ctx.program, "u_specularColor"), 1, &ctx.specular[0]);
     glUniform1f(glGetUniformLocation(ctx.program, "u_specularPower"), ctx.specularPow);
 
+    ImGui::Checkbox("Draw Object", &ctx.drawObject);
     ImGui::ColorEdit3("Ambient Color", &ctx.ambient[0]);
     ImGui::ColorEdit3("Diffuse Color", &ctx.diffuse[0]);
     ImGui::ColorEdit3("Specular Color", &ctx.specular[0]);
@@ -211,11 +215,16 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Toggle Reflective Environment", &ctx.reflective);
     ImGui::Checkbox("Toggle UV", &ctx.UV);
     ImGui::Checkbox("Toggle Texture", &ctx.useTexture);
-    ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
     ImGui::Checkbox("Toggle Toon Shading", &ctx.toonShading);
     ImGui::Checkbox("Toggle Evil Toon Shading", &ctx.evil_toonShading);
     ImGui::SliderInt("Toon Shading Color Levels", &ctx.toon_colorLevels, 1,32);
+    ImGui::Checkbox("Toggle Wireframe", &ctx.drawWireframe);
+    ImGui::ColorEdit3("Wireframe Color", &ctx.wireframeColor[0]);
+
+
+    ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
     ImGui::SliderFloat("Shadow Bias", &ctx.light.shadowBias, 0.0f, 0.01f, "%.4f");
+    
 
 
 
@@ -282,6 +291,9 @@ void draw_scene(Context &ctx)
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
     glUniform1i(glGetUniformLocation(ctx.program, "u_baseColorTexture"), 1);
+
+    glUniform1i(glGetUniformLocation(ctx.program, "u_wireframe"), ctx.drawWireframe);
+    glUniform3fv(glGetUniformLocation(ctx.program, "u_wireframeColor"), 1, &ctx.wireframeColor[0]);
     glm::vec3 lightPos = glm::vec3(5.0f,5.0f,5.0f);
     // Transform to view space
 
@@ -324,13 +336,33 @@ void draw_scene(Context &ctx)
             }
         }
         
-
-        // Draw object
-        glBindVertexArray(drawable.vao);
-        glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
-                       (GLvoid *)(intptr_t)drawable.indexByteOffset);
-        glBindVertexArray(0);
+       
+        if (ctx.drawWireframe) {
+            glUniform1i(glGetUniformLocation(ctx.program, "u_wireframe"), 1);
+            glUniform3fv(glGetUniformLocation(ctx.program, "u_wireframeColor"), 1, &ctx.wireframeColor[0]);
+            glEnable(GL_POLYGON_OFFSET_LINE);
+            glPolygonOffset(-1.0f, -1.0f);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glBindVertexArray(drawable.vao);  // <-- rebind!
+            glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
+                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
+            glBindVertexArray(0);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glDisable(GL_POLYGON_OFFSET_LINE);
+        }
+         // Draw object
+        if (ctx.drawObject) {
+            glUniform1i(glGetUniformLocation(ctx.program, "u_wireframe"), 0);
+            glBindVertexArray(drawable.vao);
+            glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
+                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
+            glBindVertexArray(0);
+        }
+        
+        
+    
     }
+    
     
     
 

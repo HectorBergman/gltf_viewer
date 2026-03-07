@@ -10,6 +10,9 @@ uniform bool u_toonShading;
 uniform bool u_evil_toonShading;
 uniform int u_toon_colorLevels;
 
+uniform bool u_wireframe;
+uniform vec3 u_wireframeColor;
+
 uniform vec3 u_lightPosition;
 uniform vec3 u_ambientColor;
 uniform vec3 u_diffuseColor;
@@ -98,5 +101,8 @@ void main()
         f_color = vec4(v_texcoord_0, .0, 1.0);
     } else {
         f_color.xyz = pow(max(f_color.xyz, 0.0), vec3(1.0 / 2.2));
+    }
+    if (u_wireframe) {
+        f_color = vec4(u_wireframeColor, 1.0);
     }
 }
