@@ -6,6 +6,9 @@ uniform bool u_toggleOrtho;
 uniform bool u_toggleReflective;
 uniform bool u_toggleUV;
 uniform bool u_toggleTexture;
+uniform bool u_toonShading;
+uniform bool u_evil_toonShading;
+uniform int u_toon_colorLevels;
 
 uniform vec3 u_lightPosition;
 uniform vec3 u_ambientColor;
@@ -66,6 +69,11 @@ void main()
     }
 
     float diffuse = max(0.0, dot(N, L));
+    if (u_toonShading) {
+        diffuse = ceil(diffuse * float(u_toon_colorLevels)) / float(u_toon_colorLevels);
+    }
+
+    vec3 totalDiffuse = diffuse * diffuseColor;
 
     vec3 I_s = (u_specularPower+8)/8 * u_specularColor *
                (pow(dot(N,H), u_specularPower));
@@ -74,14 +82,16 @@ void main()
     vec4 shadowPos = u_shadowFromView * vec4(v_positionEye, 1.0);
     float visibility = shadowmap_visibility(u_shadowmap, shadowPos, u_shadowBias);
 
+    vec3 finalColor = u_ambientColor + visibility * (totalDiffuse + I_s);
+
+    if (u_evil_toonShading) {
+        finalColor = round(finalColor * float(u_toon_colorLevels)) / float(u_toon_colorLevels);
+    }
+
     if (u_toggleReflective) {
         f_color = vec4(color, 1);
     } else {
-        f_color = vec4(
-            u_ambientColor
-            + visibility * (diffuseColor * diffuse + I_s),  // visibility only affects diffuse+specular
-            1.0
-        );
+        f_color = vec4(finalColor, 1.0);
     }
 
     if (u_toggleUV) {

@@ -53,6 +53,9 @@ struct Context {
     bool reflective = false;
     bool UV = false;
     bool useTexture = false;
+    bool toonShading = true;
+    bool evil_toonShading = false;
+    glm::int32 toon_colorLevels = 4;
     glm::float32 zoom = 1.0f;
     GLuint cubemap = 0; 
     int current_cubemap = 3;
@@ -209,6 +212,9 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Toggle UV", &ctx.UV);
     ImGui::Checkbox("Toggle Texture", &ctx.useTexture);
     ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
+    ImGui::Checkbox("Toggle Toon Shading", &ctx.toonShading);
+    ImGui::Checkbox("Toggle Evil Toon Shading", &ctx.evil_toonShading);
+    ImGui::SliderInt("Toon Shading Color Levels", &ctx.toon_colorLevels, 1,32);
     ImGui::SliderFloat("Shadow Bias", &ctx.light.shadowBias, 0.0f, 0.01f, "%.4f");
 
 
@@ -260,6 +266,18 @@ void draw_scene(Context &ctx)
     glUniform1i(
         glGetUniformLocation(ctx.program, "u_toggleTexture"),
         ctx.useTexture
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toonShading"),
+        ctx.toonShading
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_evil_toonShading"),
+        ctx.evil_toonShading
+    );
+    glUniform1i(
+        glGetUniformLocation(ctx.program, "u_toon_colorLevels"),
+        ctx.toon_colorLevels
     );
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_view"), 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(ctx.program, "u_projection"), 1, GL_FALSE, &projection[0][0]);
