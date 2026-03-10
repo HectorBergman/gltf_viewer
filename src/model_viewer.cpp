@@ -69,6 +69,9 @@ struct Context {
     ShadowCastingLight light;
     GLuint shadowProgram;
     bool showShadowmap = false;
+
+    GLuint outlineProgram;
+    float outlineThickness = 0.02f;
 };
 
 // Returns the absolute path to the src/shader directory
@@ -116,6 +119,8 @@ void do_initialization(Context &ctx)
     ctx.current_cubemap = 3;
     ctx.previous_cubemap = -1;
     ctx.cubemap_chosen = "8";
+
+    ctx.outlineProgram = cg::load_shader_program(shader_dir() + "outline.vert", shader_dir() + "outline.frag");
 
     ctx.shadowProgram =
         cg::load_shader_program(shader_dir() + "shadow.vert", shader_dir() + "shadow.frag");
@@ -218,8 +223,11 @@ void draw_scene(Context &ctx)
     ImGui::Checkbox("Toggle Toon Shading", &ctx.toonShading);
     ImGui::Checkbox("Toggle Evil Toon Shading", &ctx.evil_toonShading);
     ImGui::SliderInt("Toon Shading Color Levels", &ctx.toon_colorLevels, 1,32);
-    ImGui::Checkbox("Toggle Wireframe", &ctx.drawWireframe);
-    ImGui::ColorEdit3("Wireframe Color", &ctx.wireframeColor[0]);
+    ImGui::Checkbox("Toggle Outline", &ctx.drawWireframe);
+    ImGui::SliderFloat("Outline Thickness", &ctx.outlineThickness, 1, 32);
+
+    ImGui::ColorEdit3("Outline Color", &ctx.wireframeColor[0]);
+    ImGui::SliderFloat("Outline Thickness", &ctx.outlineThickness, 0.001f, 0.1f);
 
 
     ImGui::Checkbox("Show Shadowmap", &ctx.showShadowmap);
@@ -337,19 +345,7 @@ void draw_scene(Context &ctx)
         }
         
        
-        if (ctx.drawWireframe) {
-            glUniform1i(glGetUniformLocation(ctx.program, "u_wireframe"), 1);
-            glUniform3fv(glGetUniformLocation(ctx.program, "u_wireframeColor"), 1, &ctx.wireframeColor[0]);
-            glEnable(GL_POLYGON_OFFSET_LINE);
-            glPolygonOffset(-1.0f, -1.0f);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glBindVertexArray(drawable.vao);  // <-- rebind!
-            glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
-                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
-            glBindVertexArray(0);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            glDisable(GL_POLYGON_OFFSET_LINE);
-        }
+
          // Draw object
         if (ctx.drawObject) {
             glUniform1i(glGetUniformLocation(ctx.program, "u_wireframe"), 0);
@@ -358,14 +354,25 @@ void draw_scene(Context &ctx)
                         (GLvoid *)(intptr_t)drawable.indexByteOffset);
             glBindVertexArray(0);
         }
-        
-        
-    
-    }
-    
-    
-    
+        if (ctx.drawWireframe) {
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_FRONT);
+            glUseProgram(ctx.outlineProgram);
+            glUniformMatrix4fv(glGetUniformLocation(ctx.outlineProgram, "u_model"),       1, GL_FALSE, &model[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(ctx.outlineProgram, "u_view"),       1, GL_FALSE, &view[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(ctx.outlineProgram, "u_projection"), 1, GL_FALSE, &projection[0][0]);
+            glUniform1f(glGetUniformLocation(ctx.outlineProgram, "u_outlineThickness"), ctx.outlineThickness);
+            glUniform3fv(glGetUniformLocation(ctx.outlineProgram, "u_wireframeColor"), 1, &ctx.wireframeColor[0]);
 
+            glBindVertexArray(drawable.vao);
+            glDrawElements(GL_TRIANGLES, drawable.indexCount, drawable.indexType,
+                        (GLvoid *)(intptr_t)drawable.indexByteOffset);
+            glBindVertexArray(0);
+
+            glCullFace(GL_BACK);
+            glUseProgram(ctx.program);
+        }
+    }
     // Clean up
     cg::reset_gl_render_state();
     glUseProgram(0);
@@ -558,6 +565,9 @@ int main(int argc, char *argv[])
     glBindVertexArray(ctx.emptyVAO);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     do_initialization(ctx);
+    if (!ctx.outlineProgram) {
+        std::cerr << "Outline shader fail" << std::endl;
+    }
 
     // Start rendering loop
     while (!glfwWindowShouldClose(ctx.window)) {

@@ -92,6 +92,9 @@ void main()
     }
 
     if (u_toggleReflective) {
+        if (u_evil_toonShading){
+            color = round(color* float(u_toon_colorLevels)) / float(u_toon_colorLevels);
+        }
         f_color = vec4(color, 1);
     } else {
         f_color = vec4(finalColor, 1.0);
